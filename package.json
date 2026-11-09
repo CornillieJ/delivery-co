@@ -1,0 +1,45 @@
+{
+  "name": "delivery-co",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "author": {
+    "name": "Jeffrey Cornillie",
+    "email": "jeffrey.cornillie@kuleuven.be",
+    "url": "https://github.com/CornillieJ"
+  },
+  "description": "Opinionated three.js game starter: engine core, physics, input, controls, UI and ready-to-call game templates.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node tools/smoke.mjs http://localhost:5180/?demo=third-person",
+    "smoke:combat": "node tools/smoke.mjs http://localhost:5180/?demo=third-person tools/probe-combat.js",
+    "smoke:gallery": "node tools/smoke.mjs http://localhost:5180/",
+    "smoke:all": "bash tools/smoke-all.sh",
+    "test": "node tools/unit.mjs",
+    "smoke:chess": "node tools/smoke.mjs http://localhost:5180/?demo=chess tools/probe-diagnostics.js"
+  },
+  "devDependencies": {
+    "@types/gsap": "^3.0.0",
+    "@types/node": "^24.7.2",
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.2.2",
+    "vite-plugin-restart": "^0.4.2",
+    "playwright-core": "^1.56.0",
+    "esbuild": "^0.25.0"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "gsap": "^3.13.0",
+    "stats.js": "^0.17.0",
+    "three": "^0.180.0",
+    "three-stdlib": "^2.36.0",
+    "troika-three-text": "^0.52.4"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}
