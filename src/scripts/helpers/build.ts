@@ -263,6 +263,52 @@ export function createAvatar(options: { color?: THREE.ColorRepresentation; heigh
     return group;
 }
 
+/**
+ * A grey-box vehicle: a cab, a cargo box and four wheel meshes, in the -z
+ * forward convention the `VehicleBody` drives in. The wheels are returned
+ * separately because the controller moves them itself; add them to the scene
+ * and sync them with `syncWheelMeshes`.
+ */
+export function createVehicleVisual(options: { color?: THREE.ColorRepresentation; panelColor?: THREE.ColorRepresentation; wheelRadius?: number } = {}): { root: THREE.Group; wheels: THREE.Mesh[] } {
+    const paint = new THREE.MeshStandardMaterial({ color: new THREE.Color(options.color ?? 0xe07b39), roughness: 0.5, metalness: 0.1 });
+    const panel = new THREE.MeshStandardMaterial({ color: new THREE.Color(options.panelColor ?? 0xece8dc), roughness: 0.7 });
+
+    const root = new THREE.Group();
+    root.name = 'vehicle-visual';
+
+    const cargo = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 1.9), panel);
+    cargo.position.set(0, 0.3, 0.55);
+    cargo.castShadow = true;
+    root.add(cargo);
+
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.85, 1.3), paint);
+    cab.position.set(0, 0.08, -1.0);
+    cab.castShadow = true;
+    root.add(cab);
+
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 0.06), new THREE.MeshStandardMaterial({ color: 0x9fd4e8, roughness: 0.1, metalness: 0.4 }));
+    windshield.position.set(0, 0.28, -1.62);
+    windshield.rotation.x = 0.25;
+    root.add(windshield);
+
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.22, 1.94), paint);
+    stripe.position.set(0, 0.34, 0.55);
+    root.add(stripe);
+
+    const wheelRadius = options.wheelRadius ?? 0.34;
+    const wheelGeometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.26, 14);
+    wheelGeometry.rotateZ(Math.PI / 2);
+    const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x1c1f26, roughness: 0.9 });
+    const wheels: THREE.Mesh[] = [];
+    for (let index = 0; index < 4; index += 1) {
+        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        wheel.castShadow = true;
+        wheel.name = `wheel-${index}`;
+        wheels.push(wheel);
+    }
+    return { root, wheels };
+}
+
 /** Checkerboard ground texture drawn on a canvas, for prototypes with no assets. */
 export function checkerTexture(size = 512, squares = 8, colorA = '#8f9682', colorB = '#7d8472'): THREE.CanvasTexture {
     const canvas = document.createElement('canvas');

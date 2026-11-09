@@ -1,14 +1,10 @@
 import * as THREE from 'three';
 
 import { createGame, startGame } from '../init';
-import { addResource, addScene, addTouchControls } from '../kit';
+import { addResource, addScene, addTouchControls, addVehicle } from '../kit';
 import { BlockBuilder } from '../helpers/build';
 import { createLabel } from '../helpers/text';
-import { Player } from '../game/player';
 import { DeliveryManager } from '../game/delivery';
-import { groups, LAYER } from '../physics/layers';
-import { VehicleBody } from '../physics/vehicle';
-import { VehicleController } from '../controls/vehicle';
 import { setupGameFlow, type GameFlow } from '../core/game-state';
 import { SYSTEM_ORDER } from '../core/systems';
 import { BUILDINGS, DEPOT, SHIFT_ORDERS, TOWN_SIZE, TREES } from '../content/town';
@@ -28,49 +24,21 @@ export async function boot(): Promise<void> {
 
     buildTown(game);
 
-    //#region The van and its driver
+    //#region The van
 
-    // The delivery manager checks distances against `game.player`, so an
-    // invisible, frozen player capsule is parked at the van's bumper. The same
-    // trick carries the light cycle in the Tron template.
-    const player = new Player(game, { position: new THREE.Vector3(DEPOT.x, 0.4, DEPOT.z), object: new THREE.Group() });
-    player.frozen = true;
-    game.player = player;
-    // The parked capsule rides inside the van's chassis; they must not collide.
-    player.body.body.collider.setCollisionGroups(groups(LAYER.PLAYER, LAYER.WORLD));
-
-    const van = buildVan();
-    for (const wheel of van.wheels) game.scene.add(wheel);
-    const vehicle = new VehicleBody(game, {
+    const van = addVehicle(game, {
         position: { x: DEPOT.x, y: 0, z: DEPOT.z - 5 },
-        yaw: 0,
-        object: van.root,
         engineForce: 2400,
         brakeForce: 80,
         tag: 'van',
+        colors: { color: 0xe07b39 },
+        camera: { distance: 8.5, height: 3.6 },
     });
-    const controls = new VehicleController(game, vehicle, { distance: 8.5, height: 3.6 });
-
-    const wheelSpin = [0, 0, 0, 0];
-    game.systems.add({
-        name: 'van-carry',
-        order: SYSTEM_ORDER.CONTROL - 1,
-        update: (delta) => {
-            player.body.teleport(vehicle.position);
-            for (let index = 0; index < 4; index += 1) {
-                const mesh = van.wheels[index];
-                const position = vehicle.wheelWorldPosition(index);
-                if (!mesh || !position) continue;
-                mesh.position.copy(position);
-                wheelSpin[index] = (wheelSpin[index] ?? 0) + (vehicle.speed / 0.34) * delta;
-                mesh.rotation.set(wheelSpin[index] ?? 0, vehicle.yaw + (index < 2 ? vehicle.wheelSteering(index) : 0), 0, 'YXZ');
-            }
-        },
-    });
+    const vehicle = van.vehicle;
 
     addTouchControls(game, { buttons: [{ action: 'jump', label: '⛔', primary: true, hold: true }] });
 
-    //#endregion The van and its driver
+    //#endregion The van
 
     //#region The shift
 
@@ -80,6 +48,8 @@ export async function boot(): Promise<void> {
     const deliveries = new DeliveryManager(game, {
         capacity: 3,
         radius: 3.4,
+        // The courier is the van: the whole loop runs on its position.
+        tracking: () => vehicle.position,
         onDelivered: (_hub, _order, total) => {
             shift.delivered += 1;
             till.set(total);
@@ -148,7 +118,7 @@ export async function boot(): Promise<void> {
         },
     });
 
-    game.world = { vehicle, controls, deliveries, till, flow };
+    game.world = { vehicle, controls: van.controller, deliveries, till, flow };
     startGame(game);
 }
 
@@ -215,45 +185,3 @@ function buildTown(game: Game): void {
 }
 
 //#endregion Town building
-
-//#region The van
-
-/** A grey-box delivery van: a cab, a cargo box and four wheel meshes. */
-function buildVan(): { root: THREE.Group; wheels: THREE.Mesh[] } {
-    const root = new THREE.Group();
-    const paint = new THREE.MeshStandardMaterial({ color: 0xe07b39, roughness: 0.5, metalness: 0.1 });
-    const panel = new THREE.MeshStandardMaterial({ color: 0xece8dc, roughness: 0.7 });
-
-    const cargo = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 1.9), panel);
-    cargo.position.set(0, 0.3, 0.55);
-    cargo.castShadow = true;
-    root.add(cargo);
-
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.85, 1.3), paint);
-    cab.position.set(0, 0.08, -1.0);
-    cab.castShadow = true;
-    root.add(cab);
-
-    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 0.06), new THREE.MeshStandardMaterial({ color: 0x9fd4e8, roughness: 0.1, metalness: 0.4 }));
-    windshield.position.set(0, 0.28, -1.62);
-    windshield.rotation.x = 0.25;
-    root.add(windshield);
-
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.22, 1.94), paint);
-    stripe.position.set(0, 0.34, 0.55);
-    root.add(stripe);
-
-    const wheelGeometry = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 14);
-    wheelGeometry.rotateZ(Math.PI / 2);
-    const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x1c1f26, roughness: 0.9 });
-    const wheels: THREE.Mesh[] = [];
-    for (let index = 0; index < 4; index += 1) {
-        const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        wheel.castShadow = true;
-        wheel.name = `wheel-${index}`;
-        wheels.push(wheel);
-    }
-    return { root, wheels };
-}
-
-//#endregion The van

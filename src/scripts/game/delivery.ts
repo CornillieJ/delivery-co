@@ -38,6 +38,12 @@ export type DeliveryOptions = {
     beaconHeight?: number;
     /** Automatic pick up and drop off when walking into the marker. */
     automatic?: boolean;
+    /**
+     * Where the courier is, read every frame for the automatic checks. Defaults
+     * to the player: pass the van, the kart or the drone instead and the whole
+     * loop works for a driving game with no parked fake player.
+     */
+    tracking?: () => THREE.Vector3;
     /** Called after a successful delivery. */
     onDelivered?: (game: Game, order: DeliveryOrder, total: number) => void;
     /** Called when a timer runs out. */
@@ -200,13 +206,13 @@ export class DeliveryManager {
         }
 
         if (!this.automatic) return;
-        const player = this.game.player;
-        if (!player || player.isDead) return;
         if (this.cooldown.ready === false) return;
+        const position = this.courierPosition();
+        if (!position) return;
 
-        if (entry.stage === 0 && this.distanceTo(entry.order.pickup, player.position) <= this.radius && this.carrying < this.capacity) {
+        if (entry.stage === 0 && this.distanceTo(entry.order.pickup, position) <= this.radius && this.carrying < this.capacity) {
             this.advance(entry);
-        } else if (entry.stage === 1 && this.distanceTo(entry.order.dropoff, player.position) <= this.radius) {
+        } else if (entry.stage === 1 && this.distanceTo(entry.order.dropoff, position) <= this.radius) {
             this.complete(entry);
         }
     }
@@ -258,6 +264,13 @@ export class DeliveryManager {
 
     private distanceTo(point: THREE.Vector3, position: THREE.Vector3 | Vec3): number {
         return Math.hypot(position.x - point.x, position.z - point.z);
+    }
+
+    /** Where the courier is right now: the tracker, or the living player. */
+    private courierPosition(): THREE.Vector3 | undefined {
+        if (this.options.tracking) return this.options.tracking();
+        const player = this.game.player;
+        return player && !player.isDead ? player.position : undefined;
     }
 
     //#endregion Internals

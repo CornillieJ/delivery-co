@@ -111,17 +111,18 @@ export class VehicleBody {
         this.controller = this.physics.world.createVehicleController(this.chassis.rigidBody);
 
         // Wheels sit at the corners of the chassis' underside. Front wheels are
-        // at +z in chassis space, matching the -z forward convention.
+        // at -z in chassis space: the controller drives -z forward, the same
+        // convention as three.js cameras and the character controllers.
         const down = { x: 0, y: -1, z: 0 };
         const axle = { x: 1, y: 0, z: 0 };
         const halfTrack = trackWidth / 2;
         const halfBase = wheelBase / 2;
         const mountY = -size.y / 2;
         const mounts = [
-            { x: -halfTrack, y: mountY, z: halfBase },
-            { x: halfTrack, y: mountY, z: halfBase },
             { x: -halfTrack, y: mountY, z: -halfBase },
             { x: halfTrack, y: mountY, z: -halfBase },
+            { x: -halfTrack, y: mountY, z: halfBase },
+            { x: halfTrack, y: mountY, z: halfBase },
         ];
         for (const mount of mounts) {
             this.controller.addWheel(mount, down, axle, restLength, this.options.wheelRadius);
@@ -229,7 +230,7 @@ export class VehicleBody {
 
         const { throttle, steer, brake = 0, handbrake = false } = this.input;
         const wheels = this.controller.numWheels();
-        const front = (index: number): boolean => this.controller.wheelChassisConnectionPointCs(index)?.z !== undefined && (this.controller.wheelChassisConnectionPointCs(index)?.z ?? 0) > 0;
+        const front = (index: number): boolean => (this.controller.wheelChassisConnectionPointCs(index)?.z ?? 0) < 0;
         const drives = (index: number): boolean => this.options.driveWheels === 'all' || (this.options.driveWheels === 'rear' ? !front(index) : front(index));
 
         // Steering eases off with speed, so a highway sweeper is not a roll risk.
