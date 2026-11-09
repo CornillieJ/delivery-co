@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
 import { createGame, startGame } from '../init';
-import { addResource, addScene, addTouchControls, addVehicle } from '../kit';
+import { addMinimap, addResource, addScene, addTouchControls, addVehicle } from '../kit';
 import { BlockBuilder } from '../helpers/build';
 import { createLabel } from '../helpers/text';
-import { DeliveryManager } from '../game/delivery';
+import { DeliveryManager, currentDeliveryTarget } from '../game/delivery';
 import { setupGameFlow, type GameFlow } from '../core/game-state';
 import { SYSTEM_ORDER } from '../core/systems';
 import { BUILDINGS, DEPOT, SHIFT_ORDERS, TOWN_SIZE, TREES } from '../content/town';
@@ -37,6 +37,39 @@ export async function boot(): Promise<void> {
     const vehicle = van.vehicle;
 
     addTouchControls(game, { buttons: [{ action: 'jump', label: '⛔', primary: true, hold: true }] });
+
+    addMinimap(game, {
+        follow: () => vehicle.position,
+        heading: () => vehicle.yaw,
+        rotate: true,
+        zoom: 110,
+        markers: () => {
+            const target = currentDeliveryTarget(deliveries);
+            return [
+                { position: vehicle.position, color: '#ffffff', heading: vehicle.yaw, size: 5 },
+                ...(target ? [{ position: target, color: '#ffd166', size: 5 }] : []),
+            ];
+        },
+        drawStatic: (ctx, toMap) => {
+            // The road network: two main streets and the ring road.
+            ctx.strokeStyle = 'rgba(160, 168, 184, 0.8)';
+            ctx.lineCap = 'round';
+            const road = (x1: number, z1: number, x2: number, z2: number, width: number): void => {
+                ctx.lineWidth = width * (ctx.canvas.width / 110);
+                ctx.beginPath();
+                ctx.moveTo(...toMap(x1, z1));
+                ctx.lineTo(...toMap(x2, z2));
+                ctx.stroke();
+            };
+            const ring = TOWN_SIZE - 8;
+            road(0, -TOWN_SIZE, 0, TOWN_SIZE, 8);
+            road(-TOWN_SIZE, 0, TOWN_SIZE, 0, 8);
+            road(-TOWN_SIZE, -ring, TOWN_SIZE, -ring, 6);
+            road(-TOWN_SIZE, ring, TOWN_SIZE, ring, 6);
+            road(-ring, -TOWN_SIZE, -ring, TOWN_SIZE, 6);
+            road(ring, -TOWN_SIZE, ring, TOWN_SIZE, 6);
+        },
+    });
 
     //#endregion The van
 

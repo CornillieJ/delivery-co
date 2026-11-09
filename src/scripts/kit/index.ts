@@ -47,3 +47,4 @@ export * from './objectives';
 export * from './scene';
 export * from './characters';
 export * from './vehicle';
+export * from './minimap';

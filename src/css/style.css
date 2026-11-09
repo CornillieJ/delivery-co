@@ -937,3 +937,23 @@ canvas.webgl {
 	height: 100dvh;
 	touch-action: none;
 }
+
+/* --------------------------------------------------------------------------
+   Minimap
+   -------------------------------------------------------------------------- */
+
+.minimap {
+	position: absolute;
+	left: 14px;
+	bottom: 14px;
+	pointer-events: none;
+	filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+@media (max-width: 700px) {
+	.minimap {
+		left: 8px;
+		top: 8px;
+		bottom: auto;
+	}
+}
